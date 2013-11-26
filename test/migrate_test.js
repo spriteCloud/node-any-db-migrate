@@ -1,6 +1,6 @@
 'use strict';
 
-var pub = require('../lib/migrate.js');
+var migrate = require('../lib/migrate.js');
 
 
 /*
@@ -32,9 +32,51 @@ exports['migrate'] = {
 
 
 
-  'here_doc': function(test)
+  'get_database_config': function(test)
   {
-    test.ok(true, "yay");
+    // Missing databases_file option must throw.
+    test.throws(function() { migrate.get_database_config(); }, Error, 'Missing options must throw.');
+    test.throws(function() { migrate.get_database_config({}); }, Error, 'Missing options must throw.');
+
+    // Missing test config - must not throw but return undefined.
+    var options = {
+      databases_file: './test/db_missing.json',
+      environment: 'default',
+      verbose: false,
+    };
+    test.doesNotThrow(function() { migrate.get_database_config(options); }, Error, 'Missing database config must not cause an excpetion.');
+    var db = migrate.get_database_config(options);
+    test.strictEqual(undefined, db, 'Return of malformed call must be undefined.');
+
+    // Broken test config - must not throw but return undefined.
+    options = {
+      databases_file: './test/db_broken.json',
+      environment: 'default',
+      verbose: false,
+    };
+    test.doesNotThrow(function() { migrate.get_database_config(options); }, Error, 'Broken database config must not cause an excpetion.');
+    db = migrate.get_database_config(options);
+    test.strictEqual(undefined, db, 'Return of malformed call must be undefined.');
+
+    // Working test config - must not throw, and must return something.
+    options = {
+      databases_file: './test/db_working.json',
+      environment: 'test',
+      verbose: true,
+    };
+    test.doesNotThrow(function() { migrate.get_database_config(options); }, Error, 'Working database config must not cause an exception.');
+    db = migrate.get_database_config(options);
+    test.notStrictEqual(undefined, db, 'Return of well formed call must not be undefined.');
+
+    // Working test config - can return undefined if the requested environment was not found.
+    options = {
+      databases_file: './test/db_working.json',
+      environment: 'not found',
+      verbose: false,
+    };
+    db = migrate.get_database_config(options);
+    test.strictEqual(undefined, db, 'Return of well formed call must be undefined if the environment is not found.');
+
     test.done();
   },
 };

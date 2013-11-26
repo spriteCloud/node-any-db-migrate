@@ -44,5 +44,6 @@
     "migration"
   ],
   "dependencies": {
+    "optparse": "~1.0.4"
   }
 }
