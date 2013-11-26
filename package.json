@@ -1,0 +1,48 @@
+{
+  "name": "any-db-migrate",
+  "description": "Manage database migrations with node-any-db.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/spriteCloud/node-any-db-migrate",
+  "author": {
+    "name": "Jens Finkhaeuser",
+    "email": "jens@spritecloud.com",
+    "url": "http://www.spritecloud.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/spriteCloud/node-any-db-migrate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/spriteCloud/node-any-db-migrate/issues"
+  },
+  "licenses": [
+    {
+      "type": "Proprietary",
+      "url": "https://github.com/spriteCloud/node-any-db-migrate/blob/master/LICENSE"
+    }
+  ],
+  "bin": {
+    "migrate": "bin/migrate"
+  },
+  "main": "lib/public",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "grunt nodeunit"
+  },
+  "devDependencies": {
+    "grunt-contrib-jshint": "~0.6.4",
+    "grunt-contrib-nodeunit": "~0.2.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt": "~0.4.1"
+  },
+  "keywords": [
+    "database",
+    "db",
+    "migrate",
+    "migration"
+  ],
+  "dependencies": {
+  }
+}
