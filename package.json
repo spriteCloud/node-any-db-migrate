@@ -35,7 +35,9 @@
     "grunt-contrib-jshint": "~0.6.4",
     "grunt-contrib-nodeunit": "~0.2.0",
     "grunt-contrib-watch": "~0.5.3",
-    "grunt": "~0.4.1"
+    "grunt": "~0.4.1",
+    "any-db": "~1.0.0",
+    "any-db-sqlite3": "~1.0.0"
   },
   "keywords": [
     "database",
@@ -44,6 +46,7 @@
     "migration"
   ],
   "dependencies": {
-    "optparse": "~1.0.4"
+    "optparse": "~1.0.4",
+    "async": "~0.2.9"
   }
 }

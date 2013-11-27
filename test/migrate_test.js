@@ -114,10 +114,228 @@ exports['migrate'] = {
     };
     test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
     var db = migrate.collect_migrations(options);
-    test.ok(Array.isArray(db), 'Return of valid call must be an array.');
-    test.ok(db.length > 0, 'Must have migrations.');
-    test.ok(db.length === 1, 'Only one valid migration to be found.');
+    test.strictEqual('object', typeof(db), 'Return of valid call must be an array.');
+    test.ok(Object.keys(db).length > 0, 'Must have migrations.');
+    test.ok(Object.keys(db).length === 3, 'Only three valid migrations to be found.');
 
     test.done();
+  },
+
+
+
+  'filter_migrations': function(test)
+  {
+    // Bad parameters must throw
+    test.throws(function() { migrate.filter_migrations(); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.filter_migrations([]); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.filter_migrations(1); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.filter_migrations('foo'); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.filter_migrations({}); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.filter_migrations({}, 1); }, Error, 'Bad parameters must throw.');
+    test.doesNotThrow(function() { migrate.filter_migrations({}, ''); }, Error, 'Good parameters must not throw.');
+    test.doesNotThrow(function() { migrate.filter_migrations({}, ''); }, Error, 'Good parameters must not throw.');
+
+    // First, get our test migrations.
+    var options = {
+      migrations_dir: './test/migrations_test',
+      verbose: false,
+    };
+    var db = migrate.collect_migrations(options);
+
+    // Filtering by a non-existing name must return an empty array.
+    var filtered = migrate.filter_migrations(db, 'foo');
+    test.ok(Array.isArray(filtered), 'Must be an array.');
+    test.strictEqual(0, filtered.length, 'Must be empty.');
+
+    // Filtering by an existing name must return an array of length 1
+    filtered = migrate.filter_migrations(db, '003.js');
+    test.ok(Array.isArray(filtered), 'Must be an array.');
+    test.strictEqual(1, filtered.length, 'Must be length 1.');
+
+    // Filtering by a list of names must return any migration except for the
+    // ones in the name list.
+    var names = [
+      '004.js', // exists
+      'foo',    // does not exist
+    ];
+    filtered = migrate.filter_migrations(db, names);
+    test.ok(Array.isArray(filtered), 'Must be an array.');
+    test.strictEqual(2, filtered.length, 'Must be length 2.');
+
+    // Ensure that none of the names above are in the migrations.
+    for (var i = 0 ; i < filtered.length ; ++i) {
+      test.strictEqual(-1, names.indexOf(filtered[i].name), 'Bad entry, should be filtered out.');
+    }
+
+    test.done();
+  },
+
+
+
+  'database access': function(test)
+  {
+    // Options to use
+    var options = {
+      databases_file: './test/db_working.json',
+      environment: 'test',
+      verbose: false,
+    };
+
+    var config = migrate.get_database_config(options);
+    test.ok(config);
+
+    var dbm = require('any-db');
+    test.ok(dbm);
+
+    // Open database
+    var conn = dbm.createConnection(config);
+    test.ok(conn);
+
+    var async = require('async');
+    async.series([
+      // Clear database
+      function(cb) {
+        conn.query('DROP TABLE IF EXISTS foo;', function(error, result) {
+            test.strictEqual(null, error, 'Should not throw.');
+            cb(error);
+        });
+      },
+
+      // Try to create a table.
+      function(cb) {
+        conn.query('CREATE TABLE foo (id integer primary key, name varchar(20));', function(error, result) {
+            test.strictEqual(null, error, 'Should not throw.');
+            cb(error);
+        });
+      },
+
+      // Insert
+      function(cb) {
+        conn.query('INSERT INTO foo (id, name) VALUES (1, "lala");', function(error, result) {
+            test.strictEqual(null, error, 'Should not throw.');
+            cb(error);
+        });
+      },
+
+      // Select
+      function(cb) {
+        conn.query('SELECT name FROM foo WHERE id = 1;', function(error, result) {
+            test.strictEqual(null, error, 'Should not throw.');
+            test.strictEqual(1, result.rowCount, 'Must only have one result.');
+            cb(error);
+        });
+      },
+
+    ], function(error, results) {
+      test.done();
+    });
+  },
+
+
+
+  'retrieve_applied': function(test)
+  {
+    // Bad parameters must throw
+    test.throws(function() { migrate.retrieve_applied(); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.retrieve_applied([]); }, Error, 'Bad parameters must throw.');
+    test.throws(function() { migrate.retrieve_applied({}); }, Error, 'Bad parameters must throw.');
+    test.doesNotThrow(function() { migrate.retrieve_applied({}, function() {}); }, Error, 'Good parameters must not throw.');
+
+    var options = {
+      databases_file: './test/db_working.json',
+      migrations_dir: './test/migrations_test',
+      environment: 'test',
+      verbose: false,
+    };
+
+    var migrations = migrate.collect_migrations(options);
+    var filtered = migrate.filter_migrations(migrations, []);
+
+    var config = migrate.get_database_config(options);
+    test.ok(config);
+
+    var dbm = require('any-db');
+    test.ok(dbm);
+
+    // Open database
+    var conn = dbm.createConnection(config);
+    test.ok(conn);
+
+    // Test for existing migrations. Should not work, because migrations table
+    // does not yet exist.
+    var async = require('async');
+    async.series([
+      // Clear database
+      function(cb) {
+        conn.query('DROP TABLE IF EXISTS migrations;', function(error, result) {
+            test.strictEqual(null, error, 'Should not throw.');
+            cb(error);
+        });
+      },
+
+      // Get migrations - must fail
+      function(cb) {
+          migrate.retrieve_applied(conn, function(err, result) {
+            test.strictEqual('object', typeof(err), 'Must throw error.');
+            cb(null); // Ignore error
+          });
+      },
+
+      // Initialize database - must succeed
+      function(cb) {
+          migrate.initialize_database(conn, function(err, result) {
+            test.strictEqual(null, err, 'Must not throw.');
+            cb(err);
+          });
+      },
+
+      // Get migrations - must succeed
+      function(cb) {
+          migrate.retrieve_applied(conn, function(err, result) {
+            test.ok(Array.isArray(result), 'Must return array result.');
+            test.strictEqual(0, result.length, 'Must return empty array.');
+            cb(err);
+          });
+      },
+
+      // Register a migration - must succeed
+      function(cb) {
+          migrate.register_migrations(conn, [filtered[0]], function(err, result) {
+            test.strictEqual(null, err, 'Must not throw.');
+            cb(err);
+          });
+      },
+
+      // Get migrations - must succeed
+      function(cb) {
+          migrate.retrieve_applied(conn, function(err, result) {
+            test.ok(Array.isArray(result), 'Must return array result.');
+            test.strictEqual(1, result.length, 'Must return non-empty array.');
+            test.strictEqual(filtered[0].name, result[0], 'Must equal the registered migration.');
+            cb(err);
+          });
+      },
+
+      // Deregister migration again - must succeed
+      function(cb) {
+          migrate.deregister_migrations(conn, [filtered[0]], function(err, result) {
+            test.strictEqual(null, err, 'Must not throw.');
+            cb(err);
+          });
+      },
+
+      // Get migrations - must succeed
+      function(cb) {
+          migrate.retrieve_applied(conn, function(err, result) {
+            test.ok(Array.isArray(result), 'Must return array result.');
+            test.strictEqual(0, result.length, 'Must return empty array.');
+            cb(err);
+          });
+      },
+
+
+    ], function(error, results) {
+      test.done();
+    });
   },
 };
