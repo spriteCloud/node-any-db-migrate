@@ -79,4 +79,45 @@ exports['migrate'] = {
 
     test.done();
   },
+
+
+
+
+  'collect_migrations': function(test)
+  {
+    // Missing migrations dir option must throw.
+    test.throws(function() { migrate.collect_migrations(); }, Error, 'Missing options must throw.');
+    test.throws(function() { migrate.collect_migrations({}); }, Error, 'Missing options must throw.');
+
+    // Missing test config - must not throw but return undefined.
+    var options = {
+      migrations_dir: './test/migrations_missing',
+      verbose: false,
+    };
+    test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
+    var db = migrate.collect_migrations(options);
+    test.strictEqual(undefined, db, 'Return of malformed call must be undefined.');
+
+    // Empty migrations - must not throw but return an empty list.
+    var options = {
+      migrations_dir: './test/migrations_empty',
+      verbose: false,
+    };
+    test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
+    var db = migrate.collect_migrations(options);
+    test.deepEqual([], db, 'Return of malformed call must be undefined.');
+
+    // Working migrations - must not throw (even if some are malformed) and must not return an empty list
+    var options = {
+      migrations_dir: './test/migrations_test',
+      verbose: true,
+    };
+    test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
+    var db = migrate.collect_migrations(options);
+    test.ok(Array.isArray(db), 'Return of valid call must be an array.');
+    test.ok(db.length > 0, 'Must have migrations.');
+    test.ok(db.length === 1, 'Only one valid migration to be found.');
+
+    test.done();
+  },
 };
