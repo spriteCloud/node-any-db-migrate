@@ -1,10 +1,12 @@
 exports.up = function(db, callback)
 {
-  // TODO
+  // pass
+  callback(null);
 };
 
 
 exports.down = function(db, callback)
 {
-  // TODO
+  // pass
+  callback(null);
 };

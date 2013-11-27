@@ -233,7 +233,7 @@ exports['migrate'] = {
 
 
 
-  'retrieve_applied': function(test)
+  'applied migrations': function(test)
   {
     // Bad parameters must throw
     test.throws(function() { migrate.retrieve_applied(); }, Error, 'Bad parameters must throw.');
@@ -276,6 +276,14 @@ exports['migrate'] = {
       // Get migrations - must fail
       function(cb) {
           migrate.retrieve_applied(conn, function(err, result) {
+            test.strictEqual('object', typeof(err), 'Must throw error.');
+            cb(null); // Ignore error
+          });
+      },
+
+      // Register a migration - must fail
+      function(cb) {
+          migrate.register_migrations(conn, [filtered[0]], function(err, result) {
             test.strictEqual('object', typeof(err), 'Must throw error.');
             cb(null); // Ignore error
           });
@@ -338,4 +346,107 @@ exports['migrate'] = {
       test.done();
     });
   },
+
+
+
+  'execute migrations': function(test)
+  {
+    var options = {
+      databases_file: './test/db_working.json',
+      migrations_dir: './test/migrations_test',
+      environment: 'test',
+      verbose: false,
+    };
+
+    var migrations = migrate.collect_migrations(options);
+    var filtered = migrate.filter_migrations(migrations, []);
+
+    var config = migrate.get_database_config(options);
+    test.ok(config);
+
+    var dbm = require('any-db');
+    test.ok(dbm);
+
+    // Open database
+    var conn = dbm.createConnection(config);
+    test.ok(conn);
+
+    // Test for existing migrations. Should not work, because migrations table
+    // does not yet exist.
+    var async = require('async');
+    async.series([
+      // Clear database TODO
+      function(cb) {
+        conn.query('DROP TABLE IF EXISTS migrations;', function(error, result) {
+            test.strictEqual(null, error, 'Should not throw.');
+            cb(error);
+        });
+      },
+
+      // Initialize database - must succeed
+      function(cb) {
+          migrate.initialize_database(conn, function(err, result) {
+            test.strictEqual(null, err, 'Must not throw.');
+            cb(err);
+          });
+      },
+
+      // Execute migrations - must fail, undefined function
+      function(cb) {
+        migrate.apply_migrations(options, 'foo', filtered, conn, migrate.register_migrations, function(err, result) {
+          test.notStrictEqual(null, err, 'Must throw, function does not exist.');
+          cb(null); // ignore error
+        });
+      },
+
+      // Execute migrations - must fail, duplicate table
+      function(cb) {
+        migrate.apply_migrations(options, 'up', filtered, conn, migrate.register_migrations, function(err, result) {
+          test.notStrictEqual(null, err, 'Must throw, cannot create same table twice.');
+          cb(null); // ignore error
+        });
+      },
+
+      // Execute migrations - must succeed
+      function(cb) {
+        // Filter out reason for failure above
+        filtered = migrate.filter_migrations(migrations, ['004.js']);
+        migrate.apply_migrations(options, 'up', filtered, conn, migrate.register_migrations, function(err, result) {
+          test.strictEqual(null, err, 'Must not throw.');
+          cb(err);
+        });
+      },
+
+      // Get migrations - must succeed
+      function(cb) {
+          migrate.retrieve_applied(conn, function(err, result) {
+            test.ok(Array.isArray(result), 'Must return array result.');
+            test.strictEqual(2, result.length, 'Must return non-empty array.');
+            cb(err);
+          });
+      },
+
+      // Now reverse and downgrade.
+      function(cb) {
+        var reversed = filtered.reverse();
+        migrate.apply_migrations(options, 'down', reversed, conn, migrate.deregister_migrations, function(err, result) {
+          test.strictEqual(null, err, 'Must not throw.');
+          cb(err);
+        });
+      },
+
+      // Get migrations - must succeed
+      function(cb) {
+          migrate.retrieve_applied(conn, function(err, result) {
+            test.ok(Array.isArray(result), 'Must return array result.');
+            test.strictEqual(0, result.length, 'Must return empty array.');
+            cb(err);
+          });
+      },
+
+    ], function(error, results) {
+      test.done();
+    });
+  },
+
 };

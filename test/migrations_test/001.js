@@ -1,10 +1,14 @@
 exports.up = function(db, callback)
 {
-  // TODO
+  db.query('CREATE TABLE IF NOT EXISTS users (id integer, name text);', function(err, res) {
+      callback(err);
+  });
 };
 
 
 exports.down = function(db, callback)
 {
-  // TODO
+  db.query('DROP TABLE users;', function(err, res) {
+      callback(err);
+  });
 };
