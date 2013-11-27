@@ -110,7 +110,7 @@ exports['migrate'] = {
     // Working migrations - must not throw (even if some are malformed) and must not return an empty list
     var options = {
       migrations_dir: './test/migrations_test',
-      verbose: true,
+      verbose: false,
     };
     test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
     var db = migrate.collect_migrations(options);
