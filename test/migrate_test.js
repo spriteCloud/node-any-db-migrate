@@ -40,7 +40,7 @@ exports['migrate'] = {
 
     // Missing test config - must not throw but return undefined.
     var options = {
-      databases_file: './test/db_missing.json',
+      databases_file: './test/configs/db_missing.json',
       environment: 'default',
       verbose: false,
     };
@@ -50,7 +50,7 @@ exports['migrate'] = {
 
     // Broken test config - must not throw but return undefined.
     options = {
-      databases_file: './test/db_broken.json',
+      databases_file: './test/configs/db_broken.json',
       environment: 'default',
       verbose: false,
     };
@@ -60,7 +60,7 @@ exports['migrate'] = {
 
     // Working test config - must not throw, and must return something.
     options = {
-      databases_file: './test/db_working.json',
+      databases_file: './test/configs/db_working.json',
       environment: 'test',
       verbose: true,
     };
@@ -70,7 +70,7 @@ exports['migrate'] = {
 
     // Working test config - can return undefined if the requested environment was not found.
     options = {
-      databases_file: './test/db_working.json',
+      databases_file: './test/configs/db_working.json',
       environment: 'not found',
       verbose: false,
     };
@@ -91,7 +91,7 @@ exports['migrate'] = {
 
     // Missing test config - must not throw but return undefined.
     var options = {
-      migrations_dir: './test/migrations_missing',
+      migrations_dir: './test/migrations/missing',
       verbose: false,
     };
     test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
@@ -100,7 +100,7 @@ exports['migrate'] = {
 
     // Empty migrations - must not throw but return an empty list.
     var options = {
-      migrations_dir: './test/migrations_empty',
+      migrations_dir: './test/migrations/empty',
       verbose: false,
     };
     test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
@@ -109,14 +109,14 @@ exports['migrate'] = {
 
     // Working migrations - must not throw (even if some are malformed) and must not return an empty list
     var options = {
-      migrations_dir: './test/migrations_test',
+      migrations_dir: './test/migrations/test',
       verbose: false,
     };
     test.doesNotThrow(function() { migrate.collect_migrations(options); }, Error, 'Missing migrations must not cause an excpetion.');
     var db = migrate.collect_migrations(options);
     test.strictEqual('object', typeof(db), 'Return of valid call must be an array.');
     test.ok(Object.keys(db).length > 0, 'Must have migrations.');
-    test.ok(Object.keys(db).length === 3, 'Only three valid migrations to be found.');
+    test.strictEqual(4, Object.keys(db).length, 'Only four valid migrations to be found.');
 
     test.done();
   },
@@ -137,7 +137,7 @@ exports['migrate'] = {
 
     // First, get our test migrations.
     var options = {
-      migrations_dir: './test/migrations_test',
+      migrations_dir: './test/migrations/test',
       verbose: false,
     };
     var db = migrate.collect_migrations(options);
@@ -160,12 +160,18 @@ exports['migrate'] = {
     ];
     filtered = migrate.filter_migrations(db, names);
     test.ok(Array.isArray(filtered), 'Must be an array.');
-    test.strictEqual(2, filtered.length, 'Must be length 2.');
+    test.strictEqual(3, filtered.length, 'Must be length 3.');
 
     // Ensure that none of the names above are in the migrations.
     for (var i = 0 ; i < filtered.length ; ++i) {
       test.strictEqual(-1, names.indexOf(filtered[i].name), 'Bad entry, should be filtered out.');
     }
+
+    // Lastly, ensure we can filter multiple times, i.e.  filter the filtered
+    test.doesNotThrow(function() { migrate.filter_migrations(filtered, '003.js'); }, Error, 'Must not throw.');
+    var second = migrate.filter_migrations(filtered, '003.js');
+    test.ok(Array.isArray(second), 'Must be an array.');
+    test.strictEqual(1, second.length, 'Must be length 1.');
 
     test.done();
   },
@@ -176,7 +182,7 @@ exports['migrate'] = {
   {
     // Options to use
     var options = {
-      databases_file: './test/db_working.json',
+      databases_file: './test/configs/db_working.json',
       environment: 'test',
       verbose: false,
     };
@@ -242,8 +248,8 @@ exports['migrate'] = {
     test.doesNotThrow(function() { migrate.retrieve_applied({}, function() {}); }, Error, 'Good parameters must not throw.');
 
     var options = {
-      databases_file: './test/db_working.json',
-      migrations_dir: './test/migrations_test',
+      databases_file: './test/configs/db_working.json',
+      migrations_dir: './test/migrations/test',
       environment: 'test',
       verbose: false,
     };
@@ -352,8 +358,8 @@ exports['migrate'] = {
   'execute migrations': function(test)
   {
     var options = {
-      databases_file: './test/db_working.json',
-      migrations_dir: './test/migrations_test',
+      databases_file: './test/configs/db_working.json',
+      migrations_dir: './test/migrations/test',
       environment: 'test',
       verbose: false,
     };
@@ -375,9 +381,9 @@ exports['migrate'] = {
     // does not yet exist.
     var async = require('async');
     async.series([
-      // Clear database TODO
+      // Clear database
       function(cb) {
-        conn.query('DROP TABLE IF EXISTS migrations;', function(error, result) {
+        conn.query('DROP TABLE IF EXISTS users; DROP TABLE IF EXISTS migrations;', function(error, result) {
             test.strictEqual(null, error, 'Should not throw.');
             cb(error);
         });
@@ -421,7 +427,7 @@ exports['migrate'] = {
       function(cb) {
           migrate.retrieve_applied(conn, function(err, result) {
             test.ok(Array.isArray(result), 'Must return array result.');
-            test.strictEqual(2, result.length, 'Must return non-empty array.');
+            test.strictEqual(3, result.length, 'Must return non-empty array.');
             cb(err);
           });
       },
@@ -449,4 +455,183 @@ exports['migrate'] = {
     });
   },
 
+
+
+  'apply command': function(test)
+  {
+    var options = migrate.get_default_options();
+    options.databases_file = './test/configs/db_working.json';
+    options.migrations_dir = './test/migrations/test';
+    options.environment = 'test';
+    options.verbose = false;
+
+    var async = require('async');
+
+    // Setup step
+    var setup_database = function(cb) {
+      var config = migrate.get_database_config(options);
+      test.ok(config);
+
+      var dbm = require('any-db');
+      test.ok(dbm);
+
+      // Open database
+      var conn = dbm.createConnection(config);
+      test.ok(conn);
+
+      async.series([
+        function(cb2) {
+          conn.query('DROP TABLE IF EXISTS users2;', function(err) {
+            cb2(err);
+          })
+        },
+        function(cb2) {
+          conn.query('DROP TABLE IF EXISTS users;', function(err) {
+            cb2(err);
+          })
+        },
+        function(cb2) {
+          conn.query('DROP TABLE IF EXISTS migrations;', function(err) {
+            cb2(err);
+          })
+        },
+      ],
+      function(err, res) {
+        test.strictEqual(null, err, 'Must not throw.');
+        cb(err);
+      });
+    };
+
+    // Tests
+    async.series([
+      // *** Without arguments - must not succeed, duplicate tables.
+      setup_database,
+      function(cb) {
+        migrate.cmd_apply(options, function(err) {
+            test.notStrictEqual(null, err, 'Must throw.');
+            cb(null); // Ignore error
+        });
+      },
+
+
+      // *** With incorrect argument - must fail
+      setup_database,
+      function(cb) {
+        options.arguments = ['does-not-exist'];
+        migrate.cmd_apply(options, function(err) {
+            test.notStrictEqual(null, err, 'Must throw.');
+            cb(null); // Ignore error
+        });
+      },
+
+
+      // *** With correct argument - must succeed
+      setup_database,
+      function(cb) {
+        options.arguments = ['001.js'];
+        migrate.cmd_apply(options, function(err) {
+            test.strictEqual(null, err, 'Must not throw.');
+            cb(err);
+        });
+      },
+
+
+    ], function(error, results) {
+      test.done();
+    });
+  },
+
+
+
+  'revert command': function(test)
+  {
+    var options = migrate.get_default_options();
+    options.databases_file = './test/configs/db_working.json';
+    options.migrations_dir = './test/migrations/test';
+    options.environment = 'test';
+    options.verbose = true;
+
+    var async = require('async');
+
+    // Setup step
+    var setup_database = function(cb) {
+      var config = migrate.get_database_config(options);
+      test.ok(config);
+
+      var dbm = require('any-db');
+      test.ok(dbm);
+
+      // Open database
+      var conn = dbm.createConnection(config);
+      test.ok(conn);
+
+      async.series([
+        function(cb2) {
+          conn.query('DROP TABLE IF EXISTS users2;', function(err) {
+            cb2(err);
+          })
+        },
+        function(cb2) {
+          conn.query('DROP TABLE IF EXISTS users;', function(err) {
+            cb2(err);
+          })
+        },
+        function(cb2) {
+          conn.query('DROP TABLE IF EXISTS migrations;', function(err) {
+            cb2(err);
+          })
+        },
+        function(cb2) {
+          var opts = JSON.parse(JSON.stringify(options));
+          opts.verbose = false;
+          opts.arguments = ['001.js'];
+          migrate.cmd_apply(opts, function(err) {
+            cb2(err);
+          });
+        },
+      ],
+      function(err, res) {
+        test.strictEqual(null, err, 'Must not throw.');
+        cb(err);
+      });
+    };
+
+    // Tests
+    async.series([
+      // *** Without arguments - must not succeed, duplicate tables.
+      setup_database,
+      function(cb) {
+        migrate.cmd_revert(options, function(err) {
+            test.notStrictEqual(null, err, 'Must throw.');
+            cb(null); // Ignore error
+        });
+      },
+
+
+      // *** With incorrect argument - must fail
+      setup_database,
+      function(cb) {
+        options.arguments = ['does-not-exist'];
+        migrate.cmd_revert(options, function(err) {
+            test.notStrictEqual(null, err, 'Must throw.');
+            cb(null); // Ignore error
+        });
+      },
+
+
+      // *** With correct argument - must succeed
+      setup_database,
+      function(cb) {
+        options.arguments = ['001.js'];
+        migrate.cmd_revert(options, function(err) {
+            test.strictEqual(null, err, 'Must not throw.');
+            cb(err);
+        });
+      },
+
+
+    ], function(error, results) {
+      test.done();
+    });
+  },
 };

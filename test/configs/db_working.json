@@ -1,0 +1,4 @@
+{
+  "test": "sqlite3://test/test.sqlite3",
+  "manual": "sqlite3://manual.sqlite3"
+}

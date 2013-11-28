@@ -36,7 +36,6 @@
     "grunt-contrib-nodeunit": "~0.2.0",
     "grunt-contrib-watch": "~0.5.3",
     "grunt": "~0.4.1",
-    "any-db": "~1.0.0",
     "any-db-sqlite3": "~1.0.0"
   },
   "keywords": [
@@ -47,6 +46,7 @@
   ],
   "dependencies": {
     "optparse": "~1.0.4",
+    "any-db": "~1.0.0",
     "async": "~0.2.9"
   }
 }
