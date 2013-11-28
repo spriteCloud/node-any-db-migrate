@@ -504,7 +504,7 @@ exports['migrate'] = {
 
     // Tests
     async.series([
-      // *** Without arguments - must not succeed, duplicate tables.
+      // *** Without arguments - must not succeed
       setup_database,
       function(cb) {
         migrate.cmd_apply(options, function(err) {
@@ -549,7 +549,7 @@ exports['migrate'] = {
     options.databases_file = './test/configs/db_working.json';
     options.migrations_dir = './test/migrations/test';
     options.environment = 'test';
-    options.verbose = true;
+    options.verbose = false;
 
     var async = require('async');
 
@@ -598,7 +598,7 @@ exports['migrate'] = {
 
     // Tests
     async.series([
-      // *** Without arguments - must not succeed, duplicate tables.
+      // *** Without arguments - must not succeed
       setup_database,
       function(cb) {
         migrate.cmd_revert(options, function(err) {
@@ -619,10 +619,20 @@ exports['migrate'] = {
       },
 
 
-      // *** With correct argument - must succeed
+      // *** With correct argument that's not applied - must throw
       setup_database,
       function(cb) {
-        options.arguments = ['001.js'];
+        options.arguments = ['003.js'];
+        migrate.cmd_revert(options, function(err) {
+            test.notStrictEqual(null, err, 'Must throw.');
+            cb(null); // Ignore error
+        });
+      },
+
+      // *** With correct argument that is applied - must succeed
+      setup_database,
+      function(cb) {
+        options.arguments = ['001'];
         migrate.cmd_revert(options, function(err) {
             test.strictEqual(null, err, 'Must not throw.');
             cb(err);
