@@ -828,4 +828,100 @@ exports['migrate'] = {
     });
   },
 
+
+
+
+  'create command': function(test)
+  {
+    var options = migrate.get_default_options();
+    options.databases_file = './test/configs/db_working.json';
+    options.migrations_dir = './test/migrations/test';
+    options.environment = 'test';
+    options.verbose = false;
+
+    var cleanup = function(cb) {
+      var fs = require('fs');
+      var path = require('path');
+
+      var base = path.resolve(options.migrations_dir);
+      var files = fs.readdirSync(base);
+      for (var i = 0 ; i < files.length ; ++i) {
+        if (/.*-transmogrifier.*/.test(files[i])) {
+          var full = base + path.sep + files[i];
+          fs.unlinkSync(full);
+        }
+      }
+
+      cb(null);
+    };
+
+
+    var async = require('async');
+
+    var migrations;
+    var keys;
+    var name;
+
+    // Tests
+    async.series([
+        // In preparation, clean the migrations directory.
+        cleanup,
+
+        // First, collect current migrations
+        function(cb) {
+          migrations = migrate.collect_migrations(options);
+          test.notStrictEqual(undefined, migrations, 'Must find some migrations');
+          keys = Object.keys(migrations);
+          test.strictEqual(4, keys.length, 'Must be of given size.');
+          cb(null);
+        },
+
+        // Second, create a migration
+        function(cb) {
+          options.arguments = [ 'transmogrifier' ];
+          migrate.cmd_create(options, function(err) {
+            cb(err);
+          });
+        },
+
+        // Third, one migration more must exist.
+        function(cb) {
+          var mig2 = migrate.collect_migrations(options);
+          test.notStrictEqual(undefined, mig2, 'Must find some mig2');
+          var keys2 = Object.keys(mig2).sort();
+          test.strictEqual(5, keys2.length, 'Must be of given size.');
+
+          // Ensure that the first few migrations are identical.
+          for (var i = 0 ; i < keys.length ; ++i) {
+            test.strictEqual(keys[i], keys2[i], 'Must have same key.');
+            test.deepEqual(migrations[keys[i]], mig2[keys2[i]], 'Must be same migration.');
+          }
+
+          // The last migration in mig2 needs to contain the 'transmogrifier' name.
+          var last = mig2[keys2[keys2.length - 1]];
+          name = last.name;
+          test.ok(/.*-transmogrifier/.test(name), 'Must match "transmogrifier".');
+
+          cb(null);
+        },
+
+        // Try to apply the migration. Should always work.
+        function(cb) {
+          options.arguments = [ name ];
+          migrate.cmd_apply(options, function(err) {
+              test.strictEqual(null, err, 'Must not throw.');
+              cb(err);
+          });
+        },
+
+        // Cleanup afterwards
+        cleanup,
+
+    ], function(error, results) {
+      test.done();
+    });
+  },
+
+
+
 };
