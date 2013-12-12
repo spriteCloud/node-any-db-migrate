@@ -24,7 +24,7 @@
   "bin": {
     "migrate": "bin/migrate"
   },
-  "main": "lib/public",
+  "main": "lib/migrate",
   "engines": {
     "node": ">= 0.8.0"
   },
