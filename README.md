@@ -3,6 +3,8 @@ node-any-db-migrate
 
 Database migration on top of [node-any-db](https://github.com/grncdr/node-any-db).
 
+[![Build Status](https://travis-ci.org/spriteCloud/node-any-db-migrate.svg)](https://travis-ci.org/spriteCloud/node-any-db-migrate)
+
 For now, there's no documentation, but a sample session should tell you all you
 need.
 
