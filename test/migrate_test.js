@@ -1,3 +1,11 @@
+/*
+ * migrate
+ * https://github.com/spriteCloud/node-any-db-migrate
+ *
+ * Copyright (c) 2013,2014 spriteCloud B.V. and other node-any-db-migrate contributors.
+ * All rights reserved.
+ */
+
 'use strict';
 
 var migrate = require('../lib/migrate.js');

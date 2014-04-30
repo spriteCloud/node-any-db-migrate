@@ -77,4 +77,6 @@ sqlite> select * from migrations;
 In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
 
 ## License
-Copyright (c) 2013 spriteCloud B.V. All rights reserved.
+Copyright (c) 2013,2014 spriteCloud B.V. and other `node-any-db-migrate` contributors. All rights reserved.
+
+See `LICENSE` for licensing details.
