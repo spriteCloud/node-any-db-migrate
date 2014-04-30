@@ -74,6 +74,7 @@ CREATE TABLE migrations (name TEXT PRIMARY KEY NOT NULL, date TEXT);
 sqlite> select * from migrations;
 1385715876749-new migration|2013-11-29 09:05:17
 ```
+There is also a different [tutorial on the spriteCloud website](http://www.spritecloud.com/2014/04/node-js-database-migration/).
 
 ## Contributing
 In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
