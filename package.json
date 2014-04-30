@@ -17,7 +17,7 @@
   },
   "licenses": [
     {
-      "type": "Proprietary",
+      "type": "MIT",
       "url": "https://github.com/spriteCloud/node-any-db-migrate/blob/master/LICENSE"
     }
   ],
