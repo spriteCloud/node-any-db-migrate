@@ -5,10 +5,12 @@
   "latedef": "nofunc",
   "newcap": true,
   "noarg": true,
-  "sub": true,
+  "nonew": true,
+  "plusplus": false,
   "undef": true,
   "unused": true,
   "boss": true,
   "eqnull": true,
-  "node": true
+  "node": true,
+  "laxbreak": true
 }
