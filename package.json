@@ -50,6 +50,6 @@
     "async": "~0.2.9"
   },
   "peerDependencies": {
-    "any-db": "~1.0.0"
+    "any-db": ">1.0.0"
   }
 }
