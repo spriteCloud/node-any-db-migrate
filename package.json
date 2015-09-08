@@ -1,7 +1,7 @@
 {
   "name": "any-db-migrate",
   "description": "Manage database migrations with node-any-db.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/spriteCloud/node-any-db-migrate",
   "author": {
     "name": "spriteCloud B.V.",
